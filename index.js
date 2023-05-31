@@ -39,5 +39,6 @@ Sentry.AWSLambda.init({
 exports.handler = Sentry.AWSLambda.wrapHandler(async (...args) => {
   await runWithCheckIn(schnitzel)(...args);
 }, {
+  captureTimeoutWarning: false,
   timeoutWarningLimit: 60 * 1000,
 });
