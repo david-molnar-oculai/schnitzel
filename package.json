@@ -1,0 +1,27 @@
+{
+  "name": "schnitzel",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "zip": "rm lambdaFunc.zip && zip -r lambdaFunc.zip .",
+    "predeploy": "npm run zip",
+    "deploy": "aws lambda update-function-code --function-name schnitzel --region eu-central-1 --zip-file fileb://./lambdaFunc.zip"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/david-molnar-oculai/schnitzel.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/david-molnar-oculai/schnitzel/issues"
+  },
+  "homepage": "https://github.com/david-molnar-oculai/schnitzel#readme",
+  "dependencies": {
+    "date-fns": "^2.30.0",
+    "node-fetch": "^2.6.11",
+    "pdf-parse": "^1.1.1"
+  }
+}
