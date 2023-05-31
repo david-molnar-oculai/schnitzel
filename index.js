@@ -1,10 +1,14 @@
 const fetch = require('node-fetch');
 const pdf = require('pdf-parse');
 const { getDay, format } = require('date-fns');
+const config = require('config');
 
 const weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'];
 
 const run = async () => {
+  if (!config.slackWebhookUrl) {
+    throw new Error('Slack Webhook URL not configured!');
+  }
   console.log('Fetching Wochenkarte...');
   const pdfResponse = await fetch('https://noon-food.com/karte/wochenspeisekarte.pdf');
   console.log('Wochenkarte loaded')
@@ -24,7 +28,7 @@ const run = async () => {
     const day = getDay(new Date());
     if (day === (weekdays.indexOf(schnitzelWeekday) + 1)) {
       console.log('Sending Slack message...');
-      await fetch('https://hooks.slack.com/workflows/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', {
+      await fetch(config.slackWebhookUrl, {
         method: 'POST',
         body: JSON.stringify({ message: 'Schnitzel day! https://noon-food.com/karte/wochenspeisekarte.pdf' }),
         headers: {'Content-Type': 'application/json'}
