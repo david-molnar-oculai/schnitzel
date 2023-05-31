@@ -1,44 +1,43 @@
-const fetch = require('node-fetch');
-const pdf = require('pdf-parse');
-const { getDay, format } = require('date-fns');
+const Sentry = require('@sentry/serverless');
 const config = require('config');
+const schnitzel = require('./schnitzel');
 
-const weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'];
+if (!config.sentryDsn) {
+  throw new Error('Missing Sentry DSN');
+}
 
-const run = async () => {
-  if (!config.slackWebhookUrl) {
-    throw new Error('Slack Webhook URL not configured!');
-  }
-  console.log('Fetching Wochenkarte...');
-  const pdfResponse = await fetch('https://noon-food.com/karte/wochenspeisekarte.pdf');
-  console.log('Wochenkarte loaded')
-  const pdfBuffer = await pdfResponse.arrayBuffer();
-  console.log('Parsing PDF...');
-  const { text } = await pdf(pdfBuffer);
-  console.log('PDF parsed');
-  const lowerCaseText = text.toLowerCase();
-  const schnitzelIndex = lowerCaseText.indexOf('schnitzel');
-  if (schnitzelIndex > -1) {
-    console.log('Found Schnitzel');
-    const schnitzelWeekday = weekdays.slice().reverse().find((weekday) => {
-      const weekdayWithSpaces = weekday.toLowerCase().split('').join(' ');
-      const weekdayIndex = lowerCaseText.indexOf(weekdayWithSpaces);
-      return weekdayIndex > -1 && schnitzelIndex > weekdayIndex;
-    });
-    const day = getDay(new Date());
-    if (day === (weekdays.indexOf(schnitzelWeekday) + 1)) {
-      console.log('Sending Slack message...');
-      await fetch(config.slackWebhookUrl, {
-        method: 'POST',
-        body: JSON.stringify({ message: 'Schnitzel day! https://noon-food.com/karte/wochenspeisekarte.pdf' }),
-        headers: {'Content-Type': 'application/json'}
+const runWithCheckIn = (action) => {
+  return async (...args) => {
+    let checkInId;
+    try {
+      checkInId = Sentry.AWSLambda.captureCheckIn({
+        monitorSlug: "schnitzel",
+        status: "in_progress",
       });
-    } else {
-      console.log('Not Schnitzel day :-(')
+      await action(...args);
+      Sentry.AWSLambda.captureCheckIn({
+        checkInId,
+        monitorSlug: "schnitzel",
+        status: "ok",
+      });
+    } catch (error) {
+      Sentry.AWSLambda.captureCheckIn({
+        checkInId,
+        monitorSlug: "schnitzel",
+        status: "error",
+      });
+      throw error;
     }
   }
 }
 
-exports.handler = async () => {
-  await run();
-}
+Sentry.AWSLambda.init({
+  dsn: config.sentryDsn,
+  tracesSampleRate: 1.0,
+});
+
+exports.handler = Sentry.AWSLambda.wrapHandler(async (...args) => {
+  await runWithCheckIn(schnitzel)(...args);
+}, {
+  timeoutWarningLimit: 60 * 1000,
+});

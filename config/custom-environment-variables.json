@@ -1,3 +1,4 @@
 {
-  "slackWebhookUrl": "NODE_SLACK_WEBHOOK_URL"
+  "slackWebhookUrl": "NODE_SLACK_WEBHOOK_URL",
+  "sentryDsn": "NODE_SENTRY_DSN"
 }

@@ -1,3 +1,4 @@
 {
-  "slackWebhookUrl": ""
+  "slackWebhookUrl": "",
+  "sentryDsn": ""
 }

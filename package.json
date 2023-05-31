@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node run.js",
+    "start": "node standalone.js",
     "zip": "rm -f lambdaFunc.zip && zip -x ./config/local.json -r lambdaFunc.zip .",
     "predeploy": "npm run zip",
     "deploy": "aws lambda update-function-code --function-name schnitzel --region eu-central-1 --zip-file fileb://./lambdaFunc.zip"
@@ -20,6 +20,8 @@
   },
   "homepage": "https://github.com/david-molnar-oculai/schnitzel#readme",
   "dependencies": {
+    "@sentry/node": "^7.53.1",
+    "@sentry/serverless": "^7.53.1",
     "config": "^3.3.9",
     "date-fns": "^2.30.0",
     "node-fetch": "^2.6.11",
