@@ -14,6 +14,15 @@ const getWeekNumber = (lowerCaseText) => {
   return null;
 };
 
+const findDayNumber = (lowerCaseText, index) => {
+  const weekday = weekdays.slice().reverse().find((weekday) => {
+    const weekdayWithSpaces = weekday.toLowerCase().split('').join(' ');
+    const weekdayIndex = lowerCaseText.indexOf(weekdayWithSpaces);
+    return weekdayIndex > -1 && index > weekdayIndex;
+  });
+  return weekdays.indexOf(weekday) + 1;
+}
+
 const run = async () => {
   if (!config.slackWebhookUrl) {
     throw new Error('Slack Webhook URL not configured!');
@@ -32,24 +41,40 @@ const run = async () => {
     console.log(`Wochenkarte (${pdfWeekNumber}) is for a different week (${currentWeekNumber})`);
     return;
   }
+
+  // Schnitzel
   const schnitzelIndex = lowerCaseText.indexOf('schnitzel');
   if (schnitzelIndex > -1) {
     console.log('Found Schnitzel');
-    const schnitzelWeekday = weekdays.slice().reverse().find((weekday) => {
-      const weekdayWithSpaces = weekday.toLowerCase().split('').join(' ');
-      const weekdayIndex = lowerCaseText.indexOf(weekdayWithSpaces);
-      return weekdayIndex > -1 && schnitzelIndex > weekdayIndex;
-    });
+    const schnitzelDay = findDayNumber(lowerCaseText, schnitzelIndex);
     const day = getDay(new Date());
-    if (day === (weekdays.indexOf(schnitzelWeekday) + 1)) {
+    if (day === schnitzelDay) {
       console.log('Sending Slack message...');
-      await fetch(config.slackWebhookUrl, {
+      return await fetch(config.slackWebhookUrl, {
         method: 'POST',
         body: JSON.stringify({ message: 'Schnitzel day! https://noon-food.com/karte/wochenspeisekarte.pdf' }),
         headers: {'Content-Type': 'application/json'}
       });
     } else {
       console.log('Not Schnitzel day :-(')
+    }
+  }
+
+  // Cordon Bleu
+  const cordonIndex = lowerCaseText.indexOf('cordon');
+  if (cordonIndex > -1 && lowerCaseText.includes("bleu")) {
+    console.log('Found Cordon Bleu');
+    const cordonDay = findDayNumber(lowerCaseText, cordonIndex);
+    const day = getDay(new Date());
+    if (day === cordonDay) {
+      console.log('Sending Slack message...');
+      return await fetch(config.slackWebhookUrl, {
+        method: 'POST',
+        body: JSON.stringify({ message: 'Cordon Bleu today! https://noon-food.com/karte/wochenspeisekarte.pdf' }),
+        headers: {'Content-Type': 'application/json'}
+      });
+    } else {
+      console.log('No Cordon Bleu today :-(')
     }
   }
 }
