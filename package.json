@@ -7,7 +7,7 @@
     "start": "node standalone.js",
     "zip": "rm -f lambdaFunc.zip && zip -x ./config/local.json -r lambdaFunc.zip .",
     "predeploy": "npm run zip",
-    "deploy": "aws lambda update-function-code --function-name schnitzel --region eu-central-1 --zip-file fileb://./lambdaFunc.zip"
+    "deploy": "aws lambda update-function-code --no-cli-pager --function-name schnitzel --region eu-central-1 --zip-file fileb://./lambdaFunc.zip"
   },
   "repository": {
     "type": "git",

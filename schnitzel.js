@@ -7,11 +7,11 @@ const getCurrentWeekNumber = require('current-week-number');
 const weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'];
 
 const getWeekNumber = (lowerCaseText) => {
-  const matches = lowerCaseText.match(/kw (\d{1,2})/);
+  const matches = lowerCaseText.match(/kw\s*(\d{1,2})/);
   if (matches && matches[1]) {
     return parseInt(matches[1], 10);
   }
-  return null;
+  throw new Error("Unable to determine week number from PDF");
 };
 
 const findDayNumber = (lowerCaseText, index) => {
