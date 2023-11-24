@@ -33,7 +33,7 @@ const runWithCheckIn = (action) => {
 
 Sentry.AWSLambda.init({
   dsn: config.sentryDsn,
-  tracesSampleRate: 1.0,
+  tracesSampleRate: 0.2,
 });
 
 exports.handler = Sentry.AWSLambda.wrapHandler(async (...args) => {
