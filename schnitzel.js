@@ -1,8 +1,10 @@
 const fetch = require('node-fetch');
 const pdf = require('pdf-parse');
 const { getDay, format } = require('date-fns');
-const config = require('config');
 const getCurrentWeekNumber = require('current-week-number');
+const { WebClient } = require('@slack/web-api');
+const { DynamoDBClient, ScanCommand } = require("@aws-sdk/client-dynamodb");
+
 
 const weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'];
 
@@ -23,10 +25,47 @@ const findDayNumber = (lowerCaseText, index) => {
   return weekdays.indexOf(weekday) + 1;
 }
 
-const run = async () => {
-  if (!config.slackWebhookUrl) {
-    throw new Error('Slack Webhook URL not configured!');
+const getCustomers = async () => {
+  const client = new DynamoDBClient();
+  const command = new ScanCommand({TableName: 'schnitzel-bot-slack-tokens'});
+  const result = await client.send(command);
+  return result["Items"].map(item => ({client_id: item.client_id.S, token: item.token.S}))
+}
+
+const sendMessage = async (message) => {
+  const customers = await getCustomers();
+  console.log(`${customers.length} customers loaded`)
+
+  const results = await Promise.allSettled(customers.map(async (customer) => {
+    try {
+      console.log(`Sending message to ${customer.client_id}...`);
+      const slackClient = new WebClient(customer.token);
+      const listChannelsResponse = await slackClient.conversations.list({limit: 1000});
+      if (!listChannelsResponse.ok) {
+        throw new Error("Slack list conversations call resulted in unsuccessful result")
+      }
+      const channels = listChannelsResponse.channels.filter(channel => channel.is_member);
+      console.log(`${channels.length} channel(s) loaded for ${customer.client_id}`)
+      await Promise.all(channels.map(async (channel) => {
+        await slackClient.chat.postMessage({
+          text: message,
+          channel: channel.id
+        })
+      }))
+      console.log(`Message sent to ${customer.client_id}`);
+    } catch (error) {
+      console.log(`Message sending failed for ${customer.client_id}`, error)
+      throw error
+    }
+  }))
+
+  const failedResults = results.filter(result => result.status === "rejected");
+  if (failedResults.length > 0) {
+    throw new Error("Some of message sending failed")
   }
+}
+
+const run = async () => {
   console.log('Fetching Wochenkarte...');
   const pdfResponse = await fetch('https://noon-food.com/karte/wochenspeisekarte.pdf');
   console.log('Wochenkarte loaded')
@@ -50,11 +89,7 @@ const run = async () => {
     const day = getDay(new Date());
     if (day === schnitzelDay) {
       console.log('Sending Slack message...');
-      return await fetch(config.slackWebhookUrl, {
-        method: 'POST',
-        body: JSON.stringify({ message: 'Schnitzel day! https://noon-food.com/karte/wochenspeisekarte.pdf' }),
-        headers: {'Content-Type': 'application/json'}
-      });
+      return await sendMessage('Schnitzel day! https://noon-food.com/karte/wochenspeisekarte.pdf')
     } else {
       console.log('Not Schnitzel day :-(')
     }
@@ -68,11 +103,7 @@ const run = async () => {
     const day = getDay(new Date());
     if (day === cordonDay) {
       console.log('Sending Slack message...');
-      return await fetch(config.slackWebhookUrl, {
-        method: 'POST',
-        body: JSON.stringify({ message: 'Cordon Bleu today! https://noon-food.com/karte/wochenspeisekarte.pdf' }),
-        headers: {'Content-Type': 'application/json'}
-      });
+      return await sendMessage('Cordon Bleu today! https://noon-food.com/karte/wochenspeisekarte.pdf')
     } else {
       console.log('No Cordon Bleu today :-(')
     }
