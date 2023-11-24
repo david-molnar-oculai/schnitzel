@@ -29,7 +29,7 @@ const getCustomers = async () => {
   const client = new DynamoDBClient();
   const command = new ScanCommand({TableName: 'schnitzel-bot-slack-tokens'});
   const result = await client.send(command);
-  return result["Items"].map(item => ({client_id: item.client_id.S, token: item.token.S}))
+  return result["Items"].map(item => ({id: item.id.S, token: item.token.S, name: item.name.S}))
 }
 
 const sendMessage = async (message) => {
@@ -38,23 +38,23 @@ const sendMessage = async (message) => {
 
   const results = await Promise.allSettled(customers.map(async (customer) => {
     try {
-      console.log(`Sending message to ${customer.client_id}...`);
+      console.log(`Sending message to ${customer.name}...`);
       const slackClient = new WebClient(customer.token);
       const listChannelsResponse = await slackClient.conversations.list({limit: 1000});
       if (!listChannelsResponse.ok) {
         throw new Error("Slack list conversations call resulted in unsuccessful result")
       }
       const channels = listChannelsResponse.channels.filter(channel => channel.is_member);
-      console.log(`${channels.length} channel(s) loaded for ${customer.client_id}`)
+      console.log(`${channels.length} channel(s) loaded for ${customer.name}`)
       await Promise.all(channels.map(async (channel) => {
         await slackClient.chat.postMessage({
           text: message,
           channel: channel.id
         })
       }))
-      console.log(`Message sent to ${customer.client_id}`);
+      console.log(`Message sent to ${customer.name}`);
     } catch (error) {
-      console.log(`Message sending failed for ${customer.client_id}`, error)
+      console.log(`Message sending failed for ${customer.name}`, error)
       throw error
     }
   }))
