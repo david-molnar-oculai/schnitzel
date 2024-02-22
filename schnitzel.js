@@ -17,8 +17,9 @@ const getWeekNumber = (lowerCaseText) => {
 };
 
 const findDayNumber = (lowerCaseText, index) => {
+  const shortDaysText = lowerCaseText.includes("Mo n t a g");
   const weekday = weekdays.slice().reverse().find((weekday) => {
-    const weekdayWithSpaces = weekday.toLowerCase().split('').join(' ').replace(' ', '');
+    const weekdayWithSpaces = weekday.toLowerCase().split('').join(' ').replace(shortDaysText ? ' ' : '', '');
     const weekdayIndex = lowerCaseText.indexOf(weekdayWithSpaces);
     return weekdayIndex > -1 && index > weekdayIndex;
   });
